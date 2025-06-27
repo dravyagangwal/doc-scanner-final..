@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Aadhaar Data Extractor</title>
+    <style>
+        :root {
+            --primary-color: #4CAF50;
+            --hover-color: #45a049;
+            --disabled-color: #cccccc;
+            --border-color: #ddd;
+            --background-light: #f9f9f9;
+            --text-dark: #333;
+            --text-medium: #555;
+            --error-color: #f44336;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background-color: #f5f5f5;
+        }
+        
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        
+        .upload-container {
+            border: 2px dashed var(--border-color);
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .upload-container:hover {
+            border-color: var(--primary-color);
+        }
+        
+        .drop-zone {
+            padding: 40px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .drop-zone.highlight {
+            background-color: rgba(76, 175, 80, 0.1);
+        }
+        
+        #fileInput {
+            display: none;
+        }
+        
+        .preview-container {
+            margin-top: 30px;
+            text-align: center;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: none;
+        }
+        
+        #imagePreview {
+            max-width: 100%;
+            max-height: 400px;
+            margin: 20px 0;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        button:hover {
+            background-color: var(--hover-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        button:disabled {
+            background-color: var(--disabled-color);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .results-container {
+            margin-top: 30px;
+            display: none;
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+        
+        .data-columns {
+            display: flex;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .data-column {
+            flex: 1;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--background-light);
+        }
+        
+        .column-header {
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: bold;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border-color);
+            font-size: 1.2em;
+            color: #2c3e50;
+        }
+        
+        .data-field {
+            margin-bottom: 20px;
+        }
+        
+        .field-label {
+            font-weight: 600;
+            color: var(--text-medium);
+            margin-bottom: 8px;
+            font-size: 0.95em;
+            display: flex;
+            align-items: center;
+        }
+        
+        .field-label i {
+            margin-right: 8px;
+            color: var(--primary-color);
+        }
+        
+        .field-value {
+            padding: 12px;
+            background-color: white;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            min-height: 20px;
+            word-break: break-word;
+        }
+        
+        #hindiFields .field-value {
+            font-family: 'Noto Sans Devanagari', 'Mangal', sans-serif;
+            font-size: 1.1em;
+            line-height: 1.8;
+        }
+        
+        .progress-container {
+            margin: 25px 0;
+            display: none;
+            text-align: center;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-bar-fill {
+            height: 100%;
+            background-color: var(--primary-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .download-options {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .raw-data {
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--background-light);
+            display: none;
+        }
+        
+        .raw-text-columns {
+            display: flex;
+            gap: 30px;
+        }
+        
+        .raw-text-column {
+            flex: 1;
+            white-space: pre-wrap;
+            background-color: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .error-message {
+            color: var(--error-color);
+            text-align: center;
+            margin-top: 15px;
+            font-weight: 500;
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .data-columns, .raw-text-columns {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .drop-zone {
+                padding: 25px;
+            }
+            
+            .download-options {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            button {
+                width: 100%;
+                margin: 5px 0;
+            }
+        }
+        
+        /* Animation for loading */
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        
+        .loading {
+            animation: pulse 1.5s infinite;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="header">
+        <h1><i class="fas fa-id-card"></i> AI Aadhaar Data Extractor</h1>
+        <p>Upload an Aadhaar card image to automatically extract all information</p>
+    </div>
+    
+    <div class="upload-container">
+        <div class="drop-zone" id="dropZone">
+            <div style="font-size: 3em; color: #4CAF50; margin-bottom: 15px;">
+                <i class="fas fa-cloud-upload-alt"></i>
+            </div>
+            <p style="font-size: 1.1em; margin-bottom: 10px;">Drag & drop your Aadhaar card image here</p>
+            <p style="color: #777; margin-bottom: 20px;">or</p>
+            <button id="browseBtn" style="background-color: #2c3e50;">
+                <i class="fas fa-folder-open"></i> Browse Files
+            </button>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+    </div>
+    
+    <div class="preview-container" id="previewContainer">
+        <h2><i class="fas fa-image"></i> Uploaded Image Preview</h2>
+        <img id="imagePreview" src="" alt="Aadhaar Card Preview">
+        <button id="extractBtn">
+            <i class="fas fa-robot"></i> Extract Data with AI
+        </button>
+        <div class="progress-container" id="progressContainer">
+            <p id="progressStatus">Initializing AI processing...</p>
+            <div class="progress-bar">
+                <div class="progress-bar-fill" id="progressBarFill"></div>
+            </div>
+        </div>
+        <div class="error-message" id="errorMessage"></div>
+    </div>
+    
+    <div class="results-container" id="resultsContainer">
+        <h2><i class="fas fa-id-badge"></i> Extracted Aadhaar Information</h2>
+        
+        <div class="data-columns">
+            <div class="data-column">
+                <div class="column-header">
+                    <i class="fas fa-language"></i> English Data
+                </div>
+                <div id="englishFields">
+                    <!-- Fields will be inserted here by JavaScript -->
+                </div>
+            </div>
+            <div class="data-column">
+                <div class="column-header">
+                    <i class="fas fa-language"></i> Hindi Data
+                </div>
+                <div id="hindiFields">
+                    <!-- Fields will be inserted here by JavaScript -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="download-options">
+            <button id="downloadEnglishBtn">
+                <i class="fas fa-file-export"></i> Download English Data
+            </button>
+            <button id="downloadHindiBtn">
+                <i class="fas fa-file-export"></i> Download Hindi Data
+            </button>
+            <button id="downloadCombinedBtn">
+                <i class="fas fa-file-archive"></i> Download All Data
+            </button>
+            <button id="showRawBtn">
+                <i class="fas fa-code"></i> Show Raw Processing
+            </button>
+        </div>
+        
+        <div class="raw-data" id="rawData">
+            <div class="column-header">
+                <i class="fas fa-terminal"></i> AI Processing Details
+            </div>
+            <div class="raw-text-columns">
+                <div class="raw-text-column">
+                    <h3><i class="fas fa-info-circle"></i> API Response</h3>
+                    <div id="apiResponse"></div>
+                </div>
+                <div class="raw-text-column">
+                    <h3><i class="fas fa-image"></i> Base64 Preview</h3>
+                    <div id="base64Preview"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const browseBtn = document.getElementById('browseBtn');
+        const previewContainer = document.getElementById('previewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const extractBtn = document.getElementById('extractBtn');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const englishFields = document.getElementById('englishFields');
+        const hindiFields = document.getElementById('hindiFields');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressStatus = document.getElementById('progressStatus');
+        const progressBarFill = document.getElementById('progressBarFill');
+        const errorMessage = document.getElementById('errorMessage');
+        const downloadEnglishBtn = document.getElementById('downloadEnglishBtn');
+        const downloadHindiBtn = document.getElementById('downloadHindiBtn');
+        const downloadCombinedBtn = document.getElementById('downloadCombinedBtn');
+        const showRawBtn = document.getElementById('showRawBtn');
+        const rawData = document.getElementById('rawData');
+        const apiResponse = document.getElementById('apiResponse');
+        const base64Preview = document.getElementById('base64Preview');
+
+        // Current file reference
+        let currentFile = null;
+        let currentExtractedData = null;
+
+        // Field labels with icons
+        const fieldLabels = {
+            'uid_number': { 
+                en: { label: 'Aadhaar Number', icon: 'fas fa-id-card' },
+                hi: { label: 'आधार संख्या', icon: 'fas fa-id-card' }
+            },
+            'name': { 
+                en: { label: 'Full Name', icon: 'fas fa-user' },
+                hi: { label: 'पूरा नाम', icon: 'fas fa-user' }
+            },
+            'gender': { 
+                en: { label: 'Gender', icon: 'fas fa-venus-mars' },
+                hi: { label: 'लिंग', icon: 'fas fa-venus-mars' }
+            },
+            'yob': { 
+                en: { label: 'Year of Birth', icon: 'fas fa-birthday-cake' },
+                hi: { label: 'जन्म वर्ष', icon: 'fas fa-birthday-cake' }
+            },
+            'address': { 
+                en: { label: 'Address', icon: 'fas fa-map-marker-alt' },
+                hi: { label: 'पता', icon: 'fas fa-map-marker-alt' }
+            },
+            'qr_data': { 
+                en: { label: 'QR Code Data', icon: 'fas fa-qrcode' },
+                hi: { label: 'QR कोड डेटा', icon: 'fas fa-qrcode' }
+            }
+        };
+
+        // Initialize the application
+        function init() {
+            setupEventListeners();
+            updateProgress(0, 'Ready to process');
+        }
+
+        // Set up all event listeners
+        function setupEventListeners() {
+            // Highlight drop zone when item is dragged over it
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+                if (eventName !== 'drop') {
+                    document.body.addEventListener(eventName, preventDefaults, false);
+                }
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, highlight, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, unhighlight, false);
+                if (eventName === 'drop') {
+                    document.body.addEventListener(eventName, unhighlight, false);
+                }
+            });
+
+            // Handle dropped files
+            dropZone.addEventListener('drop', handleDrop, false);
+
+            // Handle file selection via click
+            browseBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+
+            // Extract text from image
+            extractBtn.addEventListener('click', processImageWithAI);
+
+            // Download buttons
+            downloadEnglishBtn.addEventListener('click', downloadEnglishData);
+            downloadHindiBtn.addEventListener('click', downloadHindiData);
+            downloadCombinedBtn.addEventListener('click', downloadCombinedData);
+
+            // Toggle raw data view
+            showRawBtn.addEventListener('click', toggleRawData);
+        }
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function highlight() {
+            dropZone.classList.add('highlight');
+            document.body.classList.add('dragover');
+        }
+
+        function unhighlight() {
+            dropZone.classList.remove('highlight');
+            document.body.classList.remove('dragover');
+        }
+
+        // Handle dropped files
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        // Process selected files
+        function handleFiles(files) {
+            if (files.length === 0) return;
+            
+            const file = files[0];
+            if (!file.type.match('image.*')) {
+                showError('Please select an image file (JPEG, PNG)');
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                showError('File size too large. Please select an image under 5MB.');
+                return;
+            }
+            
+            currentFile = file;
+            previewFile(file);
+            hideError();
+        }
+
+        // Preview the selected image
+        function previewFile(file) {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onloadend = () => {
+                imagePreview.src = reader.result;
+                previewContainer.style.display = 'block';
+                resultsContainer.style.display = 'none';
+                rawData.style.display = 'none';
+                showRawBtn.textContent = 'Show Raw Processing';
+            };
+        }
+
+        // Process image with AI
+        async function processImageWithAI() {
+            if (!currentFile) {
+                showError('Please select an image first');
+                return;
+            }
+            
+            progressContainer.style.display = 'block';
+            extractBtn.disabled = true;
+            updateProgress(10, 'Uploading image to server...');
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', currentFile);
+                
+                updateProgress(30, 'Sending to AI for processing...');
+                
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                updateProgress(80, 'Processing AI response...');
+                
+                currentExtractedData = data;
+                displayExtractedData(data.fields);
+                
+                // For demo purposes, show some mock API response
+                apiResponse.textContent = JSON.stringify(data.fields, null, 2);
+                base64Preview.textContent = `Image converted to base64 (${currentFile.size} bytes)`;
+                
+                updateProgress(100, 'Processing complete!');
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                }, 1000);
+                
+                resultsContainer.style.display = 'block';
+                extractBtn.disabled = false;
+            } catch (error) {
+                console.error('Error:', error);
+                showError(`Processing failed: ${error.message}`);
+                updateProgress(0, 'Processing failed');
+                extractBtn.disabled = false;
+            }
+        }
+
+        // Display extracted data in labeled fields
+        function displayExtractedData(fields) {
+            englishFields.innerHTML = '';
+            hindiFields.innerHTML = '';
+            
+            // Create fields for English data
+            for (const [field, value] of Object.entries(fields.english)) {
+                const fieldDiv = createFieldElement(field, value, 'en');
+                englishFields.appendChild(fieldDiv);
+            }
+            
+            // Create fields for Hindi data
+            for (const [field, value] of Object.entries(fields.hindi)) {
+                const fieldDiv = createFieldElement(field, value, 'hi');
+                hindiFields.appendChild(fieldDiv);
+            }
+        }
+
+        // Create a field element with icon and styling
+        function createFieldElement(field, value, language) {
+            const fieldDiv = document.createElement('div');
+            fieldDiv.className = 'data-field';
+            
+            const label = document.createElement('div');
+            label.className = 'field-label';
+            
+            const icon = document.createElement('i');
+            icon.className = fieldLabels[field][language].icon;
+            label.appendChild(icon);
+            
+            const labelText = document.createElement('span');
+            labelText.textContent = fieldLabels[field][language].label;
+            label.appendChild(labelText);
+            
+            const valueDiv = document.createElement('div');
+            valueDiv.className = 'field-value';
+            valueDiv.textContent = value || (language === 'en' ? 'Not found' : 'नहीं मिला');
+            
+            if (!value) {
+                valueDiv.style.color = '#999';
+                valueDiv.style.fontStyle = 'italic';
+            }
+            
+            fieldDiv.appendChild(label);
+            fieldDiv.appendChild(valueDiv);
+            
+            return fieldDiv;
+        }
+
+        // Download English data as CSV
+        function downloadEnglishData() {
+            if (!currentExtractedData?.fields?.english) return;
+            
+            let csvContent = "Field,Value\n";
+            for (const [field, value] of Object.entries(currentExtractedData.fields.english)) {
+                const label = fieldLabels[field]?.en.label || field;
+                csvContent += `"${label}","${value || ''}"\n`;
+            }
+            
+            downloadBlob(new Blob([csvContent], { type: 'text/csv' }), 'aadhaar_english.csv');
+        }
+
+        // Download Hindi data as CSV
+        function downloadHindiData() {
+            if (!currentExtractedData?.fields?.hindi) return;
+            
+            let csvContent = "Field,Value\n";
+            for (const [field, value] of Object.entries(currentExtractedData.fields.hindi)) {
+                const label = fieldLabels[field]?.hi.label || field;
+                csvContent += `"${label}","${value || ''}"\n`;
+            }
+            
+            downloadBlob(new Blob([csvContent], { type: 'text/csv;charset=utf-8' }), 'aadhaar_hindi.csv');
+        }
+
+        // Download combined data as JSON
+        function downloadCombinedData() {
+            if (!currentExtractedData?.fields) return;
+            
+            const jsonContent = JSON.stringify(currentExtractedData.fields, null, 2);
+            downloadBlob(new Blob([jsonContent], { type: 'application/json' }), 'aadhaar_data.json');
+        }
+
+        // Toggle raw data view
+        function toggleRawData() {
+            rawData.style.display = rawData.style.display === 'none' ? 'block' : 'none';
+            showRawBtn.innerHTML = rawData.style.display === 'none' 
+                ? '<i class="fas fa-code"></i> Show Raw Processing' 
+                : '<i class="fas fa-code"></i> Hide Raw Processing';
+        }
+
+        // Helper function to download blobs
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 0);
+        }
+
+        // Update progress bar and status
+        function updateProgress(percent, message) {
+            progressBarFill.style.width = `${percent}%`;
+            progressStatus.textContent = message;
+            progressStatus.className = percent < 100 ? 'loading' : '';
+        }
+
+        // Show error message
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+
+        // Hide error message
+        function hideError() {
+            errorMessage.style.display = 'none';
+        }
+
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
